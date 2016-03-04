@@ -99,6 +99,9 @@ class Host(ZabbixServer):
 	def __init__(self, response):
 		try:
 			for (k, v) in response.iteritems():
+				# Needs to detects groups and other "classable" items
+				if k in ["groups"]:
+					pass
 				setattr(self,k,v)
 		except Exception as e:
 			raise Exception("Error during host creation: %s" % e)
