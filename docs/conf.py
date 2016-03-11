@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # PyZabbix-obj documentation build configuration file, created by
-# sphinx-quickstart on Thu Mar 10 14:47:32 2016.
+# sphinx-quickstart on Fri Mar 11 16:17:32 2016.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.

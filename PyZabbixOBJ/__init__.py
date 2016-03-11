@@ -52,8 +52,8 @@ class ZabbixServer(object):
 	def _request_handler(self, request):
 		"""
 		Internal routine for Zabbix requests
-		:param request (String): JSON string to be sent to the Zabbix Server 
-		:return response or raise ZabbixRequestError exception if error
+		:param: request (String): JSON string to be sent to the Zabbix Server 
+		:return: response or raise ZabbixRequestError exception if error
 		"""
 		if self.auth is None and request['method'] != "apiinfo.version" and request['method'] != "user.login":
 			raise ZabbixRequestError("LOGIN NOK","-1","User is not logged in")
@@ -66,9 +66,9 @@ class ZabbixServer(object):
 		"""		
 		Routine login.
 		
-		:param username
-		:param password
-		:return True if already logged, else False. Raise ZabbixRequestError exception if error
+		:param: username
+		:param: password
+		:return: True if already logged, else False. Raise ZabbixRequestError exception if error
 		"""		
 		if self.auth is not None:
 			return True
@@ -133,11 +133,11 @@ class HostGroup(object):
 	"""		
 	Host Group Class
 	
-	:param response (String): JSON string to be sent or received from the Zabbix Server 
-	:param hostname_or_id (String): name or id of the object
-	:param server (ZabbixServer): ZabbixServer instance
+	:param: response (String): JSON string to be sent or received from the Zabbix Server 
+	:param: hostname_or_id (String): name or id of the object
+	:param: server (ZabbixServer): ZabbixServer instance
 	
-	:return response or raise ZabbixRequestError exception
+	:return: response or raise ZabbixRequestError exception
 	"""	
 	def __init__(self, response, name_or_id, server):			
 		self.server = server
@@ -204,11 +204,11 @@ class Template(object):
 	"""
 	Template Class
 	
-	:param response (String): JSON string to be sent or received from the Zabbix Server 
-	:param hostname_or_id (String): name or id of the object
-	:param server (ZabbixServer): ZabbixServer instance
+	:param: response (String): JSON string to be sent or received from the Zabbix Server 
+	:param: hostname_or_id (String): name or id of the object
+	:param: server (ZabbixServer): ZabbixServer instance
 	
-	:return response or raise ZabbixRequestError exception
+	:return: response or raise ZabbixRequestError exception
 	"""
 	
 	def __init__(self, response, name_or_id, server):			
