@@ -58,7 +58,8 @@ class ZabbixServer(object):
 		"""
 		Internal routine for Zabbix requests
 		:param: request (String): JSON string to be sent to the Zabbix Server 
-		:return: response or raise ZabbixRequestError exception if error
+		:return: response 
+		:raise: ZabbixRequestError exception if error
 		"""
 		if self.auth is None and request['method'] != "apiinfo.version" and request['method'] != "user.login":
 			raise ZabbixRequestError("LOGIN NOK","-1","User is not logged in")
@@ -73,7 +74,8 @@ class ZabbixServer(object):
 		
 		:param: username
 		:param: password
-		:return: True if already logged, else False. Raise ZabbixRequestError exception if error
+		:return: True if already logged, else False
+		:raise: ZabbixRequestError exception if error
 		"""		
 		if self.auth is not None:
 			return True
@@ -142,7 +144,8 @@ class HostGroup(object):
 	:param: hostname_or_id (String): name or id of the object
 	:param: server (ZabbixServer): ZabbixServer instance
 	
-	:return: response or raise ZabbixRequestError exception
+	:return: response
+	:raise: ZabbixRequestError exception if error
 	"""	
 	def __init__(self, response, name_or_id, server):			
 		self.server = server
@@ -212,8 +215,8 @@ class Template(object):
 	:param: response (String): JSON string to be sent or received from the Zabbix Server 
 	:param: hostname_or_id (String): name or id of the object
 	:param: server (ZabbixServer): ZabbixServer instance
-	
-	:return: response or raise ZabbixRequestError exception
+
+	:raise: ZabbixRequestError exception if error
 	"""
 	
 	def __init__(self, response, name_or_id, server):			
@@ -280,13 +283,13 @@ class Host(object):
 	"""
 	Host Class
 	
-	param: response (String): JSON string to be sent or received from the Zabbix Server 
-	param: hostname_or_id (String): hostname or id of the object
-	param: server (ZabbixServer): :class:`ZabbixServer` instance
-	param: (optional) Array or single :class:`Interface` instance (not implemented yet)
-	param: (optional) Array or single :class:`HostGroup` instance
-	param: (optional) Array or single :class:`Template` instance
-	return: response or raise ZabbixRequestError exception
+	:param: response (String): JSON string to be sent or received from the Zabbix Server 
+	:param: hostname_or_id (String): hostname or id of the object
+	:param: server (ZabbixServer): :class:`ZabbixServer` instance
+	:param: (optional) Array or single :class:`Interface` instance (not implemented yet)
+	:param: (optional) Array or single :class:`HostGroup` instance
+	:param: (optional) Array or single :class:`Template` instance
+	:raise: ZabbixRequestError exception if error
 	"""
 	standard_interface = {
 					"type": 1,
