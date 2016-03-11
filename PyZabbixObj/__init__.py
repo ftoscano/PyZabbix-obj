@@ -1,5 +1,5 @@
-"""
-Created on 01 March 2016 by Fabio Toscano
+""" 
+This module is the main module of the PyZabbixObj project
 """
 
 from __future__ import unicode_literals
@@ -15,6 +15,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class ZabbixRequestError(Exception):
+	"""
+	Custom Zabbix Exception Class
+	
+	Handle a zabbix Server. Get or write objects (not all implemented)
+	
+	"""
 	def __init__(self, value, code, message):
 		self.value = value
 		self.code = code
