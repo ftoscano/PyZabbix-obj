@@ -17,9 +17,6 @@ logger = logging.getLogger(__name__)
 class ZabbixRequestError(Exception):
 	"""
 	Custom Zabbix Exception Class
-	
-	Handle a zabbix Server. Get or write objects (not all implemented)
-	
 	"""
 	def __init__(self, value, code, message):
 		self.value = value
