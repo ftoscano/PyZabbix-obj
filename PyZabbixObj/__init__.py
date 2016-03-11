@@ -1,6 +1,5 @@
 """
-Created on 01 March 2016
-@author Fabio Toscano
+Created on 01 March 2016 by Fabio Toscano
 """
 
 from __future__ import unicode_literals
