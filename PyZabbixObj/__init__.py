@@ -1,11 +1,6 @@
 """
-.. module:: Main PyZabbix-obj module
-   :platform: Unix, Windows
-   :synopsis: Main PyZabbix-obj module
-
-.. moduleauthor:: Fabio Toscano <f.toscano@invalid.com>
-
-
+Created on 01 March 2016
+@author Fabio Toscano
 """
 
 from __future__ import unicode_literals
