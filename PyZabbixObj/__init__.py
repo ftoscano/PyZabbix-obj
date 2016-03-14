@@ -107,7 +107,7 @@ class ZabbixServer(object):
 		json_object = _json_constructor("host.get", self.auth, output="extend", selectGroups= "extend", 
 						filter={"host":hostname})
 		response = self._request_handler(json_object)
-		return Host(response['result'], hostname = hostname, server = self )
+		return Host(response['result'], hostname, self)
 
 	def get_hostgroup(self, name):
 		json_object = _json_constructor("hostgroup.get", self.auth, output="extend", 
@@ -144,26 +144,17 @@ class ZabbixServer(object):
 		return "Server Zabbix %s" % self.url
 
 
+class GenericZabbixObject(object):
 
-class HostGroup(object):
-	"""		
-	Host Group Class
+	"""
+	Generic Zabbix object class. Implements some base methods
+	"""
 	
-	:param response: JSON string to be sent or received from the Zabbix Server 
-	:type response: String
-	:param hostname_or_id: name or id of the object
-	:type hostname_or_id: String
-	:param server: Zabbix server
-	:type server: ZabbixServer
-	
-	:raise: :class: `ZabbixRequestError` exception if error
-	"""	
 	def __init__(self, response, name_or_id, server):			
 		self.server = server
-		
 		# name_or_id is an id: getting the infos from the server
 		if type(name_or_id)==int or name_or_id.isdigit():
-			logger.debug("HostGroup from id")
+			logger.debug("%s from id" % self.__class__.__name__)
 			host_results = self.get_data(name_or_id, update = True)
 			if not host_results:
 				raise ZabbixRequestError("Programmatic error","-1","HostGroup creation impossibile only from id")
@@ -172,11 +163,11 @@ class HostGroup(object):
 			# Check if response is null (Host does not exist)
 			name = name_or_id
 			if len(response)==0:
-				logger.debug("TODO: HostGroup creation")
-				# TODO: Create the HostGroup from server and populate attributes (Template does not exists)
+				logger.debug("TODO: %s creation" % self.__class__.__name__)
+				# TODO: Create the object from server and populate attributes (Template does not exists)
 			else:
 				# Gets data from hostname (HostGroup exists)
-				logger.debug("Getting HostGroup info from name")
+				logger.debug("Getting %s info from name" % self.__class__.__name__)
 				self.get_data_from_name(name, update=True)
 				
 	def dict(self, *args):
@@ -186,7 +177,41 @@ class HostGroup(object):
 		return out
 			
 	def __str__(self):
-		return "HostGroup %s" % self.name	
+		return "%s %s" % (self.__class__.__name__, self.name)
+			
+	def __repr__(self):
+		return self.__str__()
+		
+	def __unicode__(self):
+		return self.__str__()
+		
+	def update(self, dictionary_info):
+		logger.debug("Updating info...")
+		if not type(dictionary_info) == dict:
+			raise ZabbixRequestError("Programmatic error","-1","Error in function update")
+		for (k, v) in dictionary_info.iteritems():
+			# TODO: Needs to detects groups and other "classable" items
+			if k in classable_types:
+				pass
+			setattr(self,k,v)
+
+
+class HostGroup(GenericZabbixObject):
+	"""		
+	Host Group Class
+	
+	:param response: JSON string to be sent or received from the Zabbix Server 
+	:type response: String
+	:param name_or_id: name or id of the object
+	:type name_or_id: String
+	:param server: Zabbix server
+	:type server: ZabbixServer
+	
+	:raise: :class: `ZabbixRequestError` exception if error
+	"""	
+
+	def __init__(self, response, name_or_id, server):			
+		super(type(self),self).__init__(response, name_or_id, server)
 		
 	def get_data(self, id, update=False):
 		logger.debug("Getting data")
@@ -200,16 +225,6 @@ class HostGroup(object):
 				self.update(output)
 		return output
 
-	def update(self, dictionary_info):
-		logger.debug("Updating info...")
-		if not type(dictionary_info) == dict:
-			raise ZabbixRequestError("Programmatic error","-1","Error in function update")
-		for (k, v) in dictionary_info.iteritems():
-			# TODO: Needs to detects groups and other "classable" items
-			if k in classable_types:
-				pass
-			setattr(self,k,v)
-
 	def get_data_from_name(self, name, update=False):
 		logger.debug("Getting data from hostname")
 		creation_response = _json_constructor("hostgroup.get", self.server.auth, output="extend", filter={"name":name})
@@ -219,14 +234,14 @@ class HostGroup(object):
 		return response['result']	
 		
 
-class Template(object):
+class Template(GenericZabbixObject):
 	"""
 	Template Class
 	
 	:param response: JSON string to be sent or received from the Zabbix Server 
 	:type response: String
-	:param hostname_or_id: name or id of the object
-	:type hostname_or_id: String
+	:param name_or_id: name or id of the object
+	:type name_or_id: String
 	:param server: Zabbix server
 	:type server: ZabbixServer
 
@@ -234,34 +249,7 @@ class Template(object):
 	"""
 	
 	def __init__(self, response, name_or_id, server):			
-		self.server = server
-		
-		# name_or_id is an id: getting the infos from the server
-		if type(name_or_id)==int or name_or_id.isdigit():
-			logger.debug("Template from id")
-			host_results = self.get_data(name_or_id, update = True)
-			if not host_results:
-				raise ZabbixRequestError("Programmatic error","-1","Template creation impossibile only from id")
-		else:
-			# name_or_id is a name
-			# Check if response is null (Host does not exist)
-			name = name_or_id
-			if len(response)==0:
-				logger.debug("TODO: Template creation")
-				# TODO: Create the template from server and populate attributes (Template does not exists)
-			else:
-				# Gets data from hostname (Template exists)
-				logger.debug("Getting template info from name")
-				self.get_data_from_name(name, update=True)
-				
-	def dict(self, *args):
-		out = []
-		for v in args:
-			out.append(v)
-		return out
-			
-	def __str__(self):
-		return "Template %s" % self.name	
+		super(type(self),self).__init__(response, name_or_id, server)
 		
 	def get_data(self, id, update=False):
 		logger.debug("Getting data")
@@ -275,16 +263,6 @@ class Template(object):
 				self.update(output)
 		return output
 
-	def update(self, dictionary_info):
-		logger.debug("Updating info...")
-		if not type(dictionary_info) == dict:
-			raise ZabbixRequestError("Programmatic error","-1","Error in function update")
-		for (k, v) in dictionary_info.iteritems():
-			# TODO: Needs to detects groups and other "classable" items
-			if k in classable_types:
-				pass
-			setattr(self,k,v)
-
 	def get_data_from_name(self, name, update=False):
 		logger.debug("Getting data from hostname")
 		creation_response = _json_constructor("template.get", self.server.auth, output="extend", filter={"host":name})
@@ -293,7 +271,7 @@ class Template(object):
 			self.update(response['result'][0])
 		return response['result']
 
-class Host(object):
+class Host(GenericZabbixObject):
 	"""
 	Host Class
 	
@@ -322,7 +300,11 @@ class Host(object):
 	interfaces = [standard_interface]
 	groups = []
 	templates = []
+	
 	def __init__(self, response, hostname_or_id, server, **kwargs):
+		"""
+		Host init method has been overridden due to different implementation
+		"""
 		self.server = server
 		# hostname_or_id is an id: getting the infos from the server
 		if type(hostname_or_id)==int or hostname_or_id.isdigit():
@@ -380,16 +362,6 @@ class Host(object):
 				self.update(output)
 		return output
 
-	def update(self, dictionary_info):
-		logger.debug("Updating info...")
-		if not type(dictionary_info) == dict:
-			raise ZabbixRequestError("Programmatic error","-1","Error in function update")
-		for (k, v) in dictionary_info.iteritems():
-			# TODO: Needs to detects groups and other "classable" items
-			if k in classable_types:
-				pass
-			setattr(self,k,v)
-
 	def get_data_from_hostname(self, hostname, update=False):
 		logger.debug("Getting data from hostname")
 		creation_response = _json_constructor("host.get", self.server.auth, output="extend", selectGroups= "extend", filter={"host":hostname})
@@ -398,16 +370,3 @@ class Host(object):
 			self.update(response['result'][0])
 		return response['result']
 		
-	def get_groups(self):
-		if hasattr(self, 'groups'):
-			return self.groups
-		return None
-		
-	def __str__(self):
-		return "Host %s" % self.name
-		
-	def __repr__(self):
-		return self.__str__()
-		
-	def __unicode__(self):
-		return "Host %s" % self.name
