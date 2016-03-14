@@ -10,7 +10,7 @@ from pprint import pprint
 
 rpc_url = "/api_jsonrpc.php"
 non_auth_methods = ["user.login","apiinfo.version"]
-classable_types = ["groups"]
+classable_types = ["groups","template","groups"]
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,13 @@ class ZabbixServer(object):
 		json_object = _json_constructor("host.get", self.auth, output="extend", selectGroups= "extend", 
 						filter={"host":hostname})
 		response = self._request_handler(json_object)
-		return Host(response['result'], hostname, self)
+		return Host(response['result'], hostname, server= self)
+		
+	def get_trigger(self, name):
+		json_object = _json_constructor("trigger.get", self.auth, output="extend", selectGroups= "extend", 
+						filter={"triggerid":name})
+		response = self._request_handler(json_object)
+		return Trigger(response['result'], name, self)
 
 	def get_hostgroup(self, name):
 		json_object = _json_constructor("hostgroup.get", self.auth, output="extend", 
@@ -133,12 +139,27 @@ class ZabbixServer(object):
 						filter={"host":hostname})
 		response = self._request_handler(json_object)
 		return Host(response['result'],hostname_or_id = hostname, server= self, **kwargs)
+		
+	def get_or_create_hostgroup(self, name, **kwargs):
+		# Get the object from the DB
+		json_object = _json_constructor("hostgroup.get", self.auth, output="extend", selectGroups= "extend", 
+						filter={"host":name})
+		response = self._request_handler(json_object)
+		return HostGroup(response['result'],name_or_id = name, server= self, **kwargs)
 	
 	def get_template(self, name):
 		json_object = _json_constructor("template.get", self.auth, output="extend", 
 						filter={"host":name})
 		response = self._request_handler(json_object)
 		return Template(response['result'], name, server= self)
+
+	def get_or_create_template(self, name, **kwargs):
+		json_object = _json_constructor("template.get", self.auth, output="extend", 
+						filter={"host":name})
+		response = self._request_handler(json_object)
+		if not 'groups' in kwargs:
+			kwargs['groups'] = 1
+		return Template(response['result'], name, server= self, **kwargs)
 		
 	def __str__(self):
 		return "Server Zabbix %s" % self.url
@@ -149,7 +170,7 @@ class GenericZabbixObject(object):
 	Generic Zabbix object class. Implements some base methods
 	"""
 	
-	def __init__(self, response, name_or_id, server):			
+	def __init__(self, response, name_or_id, server, **kwargs):			
 		self.server = server
 		# name_or_id is an id: getting the infos from the server
 		if type(name_or_id)==int or name_or_id.isdigit():
@@ -161,19 +182,30 @@ class GenericZabbixObject(object):
 			# name_or_id is a name
 			# Check if response is null (Host does not exist)
 			name = name_or_id
+			self.groups = []
 			if len(response)==0:
-				logger.debug("TODO: %s creation" % self.__class__.__name__)
-				# TODO: Create the object from server and populate attributes (Template does not exists)
+				logger.debug("Creating %s" % self.__class__.__name__ )
+				# Create the host from server and populate attributes (Host does not exists)
+				if 'groups' in kwargs:
+					if type(kwargs['groups']) == list:
+						for group in kwargs['groups']:
+							self.groups.append({'groupid':group.groupid})
+					elif type(kwargs['groups']) == HostGroup:
+						self.groups.append({'groupid':kwargs['groups'].groupid })
+					else:
+						self.groups.append({'groupid':kwargs['groups']})
+				logger.debug("%s" % self.groups)
+				creation_response = _json_constructor(self.__class__.__name__.lower()+".create", self.server.auth, host=name, groups = self.groups)
+				logger.debug("Creation: %s" % creation_response)
+				response = self.server._request_handler(creation_response)
+				logger.debug("Response: %s" % response)
+				# Get the Host from Server and populate attributes
+				id_name = self.__class__.__name__.lower()+"ids"
+				self.get_data(response['result'][id_name][0], update=True)
 			else:
 				# Gets data from hostname (HostGroup exists)
 				logger.debug("Getting %s info from name" % self.__class__.__name__)
 				self.get_data_from_name(name, update=True)
-				
-	def dict(self, *args):
-		out = []
-		for v in args:
-			out.append(v)
-		return out
 			
 	def __str__(self):
 		return "%s %s" % (self.__class__.__name__, self.name)
@@ -193,26 +225,40 @@ class GenericZabbixObject(object):
 			if k in classable_types:
 				pass
 			setattr(self,k,v)
+			logger.debug("Setting attribute for %s: %s -> %s" % (self.__class__.__name__, k,v))
 			
-	def __get_data__(self, id, id_type, update):
-		logger.debug("Getting data")
+		# Uniforming naming convention
+		if 'description' in dictionary_info and not 'name' in dictionary_info:
+			setattr(self,"name",self.description)
+			logger.debug("Setting attribute for %s: %s -> %s" % (self.__class__.__name__, "name",self.description))
+			
+	def __get_data__(self, id_type, id, update):
+		logger.debug("Getting data for %s" % self.__class__.__name__)
 		output = None
-		creation_response = _json_constructor(self.__class__.__name__.lower()+".get", self.server.auth, output="extend", filter={name_type:id})
+		creation_response = _json_constructor(self.__class__.__name__.lower()+".get", self.server.auth, output="extend", filter={id_type:id})
 		response = self.server._request_handler(creation_response)
 		# Get the Host from Server and populate attributes
 		if len(response['result']) > 0:
 			output = response['result'][0]
+			logger.debug("Response: %s " % output)
 			if update:
-				self.update(output)
+				self.__update__(output)
 		return output
 		
 	def __get_data_from_name__(self, name_type, name, update):
-		logger.debug("Getting data from hostname")
+		logger.debug("Getting data from hostname for %s " % self.__class__.__name__)
 		creation_response = _json_constructor(self.__class__.__name__.lower()+".get", self.server.auth, output="extend", filter={name_type:name})
 		response = self.server._request_handler(creation_response)
 		if update:
 			self.__update__(response['result'][0])
 		return response['result']	
+		
+					
+	def __dict__(self, *args):
+		out = []
+		for v in args:
+			out.append(v)
+		return out
 
 
 class HostGroup(GenericZabbixObject):
@@ -233,10 +279,36 @@ class HostGroup(GenericZabbixObject):
 		super(type(self),self).__init__(response, name_or_id, server)
 		
 	def get_data(self, id, update):
-		return super(type(self),self).__get_data__(id, "groupid", update)
+		return super(type(self),self).__get_data__("groupid",id, update)
 
 	def get_data_from_name(self, name, update):
 		return super(type(self),self).__get_data_from_name__("name", name, update)
+		
+		
+class Trigger(GenericZabbixObject):
+	"""		
+	Trigger Class
+	
+	:param response: JSON string to be sent or received from the Zabbix Server 
+	:type response: String
+	:param name_or_id: name or id of the object
+	:type name_or_id: String
+	:param server: Zabbix server
+	:type server: ZabbixServer
+	
+	:raise: :class: `ZabbixRequestError` exception if error
+	"""	
+
+	def __init__(self, response, name_or_id, server):			
+		super(type(self),self).__init__(response, name_or_id, server)
+		
+	def get_data(self, id, update):
+		datas = super(type(self),self).__get_data__("triggerid", id, update)
+		return datas
+
+	def get_data_from_name(self, name, update):
+		raise ZabbixRequestError("Programmatic error","-1","Trigger search not possible for name")
+		#return super(type(self),self).__get_data_from_name__("host", name, update)
 		
 
 class Template(GenericZabbixObject):
@@ -253,11 +325,12 @@ class Template(GenericZabbixObject):
 	:raise: :class: `ZabbixRequestError` exception if error
 	"""
 	
-	def __init__(self, response, name_or_id, server):			
-		super(type(self),self).__init__(response, name_or_id, server)
+	def __init__(self, response, name_or_id, server, **kwargs):			
+		super(type(self),self).__init__(response, name_or_id, server, **kwargs)
 		
 	def get_data(self, id, update):
-		return super(type(self),self).__get_data__(id, "hostid", update)
+		datas = super(type(self),self).__get_data__("templateids",id,  update)
+		return datas
 
 	def get_data_from_name(self, name, update):
 		return super(type(self),self).__get_data_from_name__("host", name, update)
@@ -342,7 +415,7 @@ class Host(GenericZabbixObject):
 				self.get_data_from_hostname(hostname, update=True)
 	
 	def get_data(self, id, update=False):
-		return super(type(self),self).__get_data__(id, "hostid", update = update)
+		return super(type(self),self).__get_data__("hostid",id, update = update)
 
 	def get_data_from_hostname(self, hostname, update=False):
 		logger.debug("Getting data from hostname")
