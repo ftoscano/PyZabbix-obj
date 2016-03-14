@@ -43,6 +43,12 @@
 </div>
 <span class="target" id="module-PyZabbixObj"></span><p>This module is the main module of the PyZabbixObj project</p>
 <dl class="class">
+<dt id="PyZabbixObj.GenericZabbixObject">
+<em class="property">class </em><code class="descclassname">PyZabbixObj.</code><code class="descname">GenericZabbixObject</code><span class="sig-paren">(</span><em>response</em>, <em>name_or_id</em>, <em>server</em><span class="sig-paren">)</span><a class="headerlink" href="#PyZabbixObj.GenericZabbixObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic Zabbix object class. Implements some base methods</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="PyZabbixObj.Host">
 <em class="property">class </em><code class="descclassname">PyZabbixObj.</code><code class="descname">Host</code><span class="sig-paren">(</span><em>response</em>, <em>hostname_or_id</em>, <em>server</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#PyZabbixObj.Host" title="Permalink to this definition">¶</a></dt>
 <dd><p>Host Class</p>
@@ -84,7 +90,7 @@
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>response</strong> (<em>String</em>) &#8211; JSON string to be sent or received from the Zabbix Server</li>
-<li><strong>hostname_or_id</strong> (<em>String</em>) &#8211; name or id of the object</li>
+<li><strong>name_or_id</strong> (<em>String</em>) &#8211; name or id of the object</li>
 <li><strong>server</strong> (<a class="reference internal" href="#PyZabbixObj.ZabbixServer" title="PyZabbixObj.ZabbixServer"><em>ZabbixServer</em></a>) &#8211; Zabbix server</li>
 </ul>
 </td>
@@ -113,7 +119,7 @@
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>response</strong> (<em>String</em>) &#8211; JSON string to be sent or received from the Zabbix Server</li>
-<li><strong>hostname_or_id</strong> (<em>String</em>) &#8211; name or id of the object</li>
+<li><strong>name_or_id</strong> (<em>String</em>) &#8211; name or id of the object</li>
 <li><strong>server</strong> (<a class="reference internal" href="#PyZabbixObj.ZabbixServer" title="PyZabbixObj.ZabbixServer"><em>ZabbixServer</em></a>) &#8211; Zabbix server</li>
 </ul>
 </td>
