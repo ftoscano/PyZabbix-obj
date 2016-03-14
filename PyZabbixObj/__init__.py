@@ -145,7 +145,6 @@ class ZabbixServer(object):
 
 
 class GenericZabbixObject(object):
-
 	"""
 	Generic Zabbix object class. Implements some base methods
 	"""
@@ -185,7 +184,7 @@ class GenericZabbixObject(object):
 	def __unicode__(self):
 		return self.__str__()
 		
-	def update(self, dictionary_info):
+	def __update__(self, dictionary_info):
 		logger.debug("Updating info...")
 		if not type(dictionary_info) == dict:
 			raise ZabbixRequestError("Programmatic error","-1","Error in function update")
@@ -194,6 +193,26 @@ class GenericZabbixObject(object):
 			if k in classable_types:
 				pass
 			setattr(self,k,v)
+			
+	def __get_data__(self, id, id_type, update):
+		logger.debug("Getting data")
+		output = None
+		creation_response = _json_constructor(self.__class__.__name__.lower()+".get", self.server.auth, output="extend", filter={name_type:id})
+		response = self.server._request_handler(creation_response)
+		# Get the Host from Server and populate attributes
+		if len(response['result']) > 0:
+			output = response['result'][0]
+			if update:
+				self.update(output)
+		return output
+		
+	def __get_data_from_name__(self, name_type, name, update):
+		logger.debug("Getting data from hostname")
+		creation_response = _json_constructor(self.__class__.__name__.lower()+".get", self.server.auth, output="extend", filter={name_type:name})
+		response = self.server._request_handler(creation_response)
+		if update:
+			self.__update__(response['result'][0])
+		return response['result']	
 
 
 class HostGroup(GenericZabbixObject):
@@ -213,25 +232,11 @@ class HostGroup(GenericZabbixObject):
 	def __init__(self, response, name_or_id, server):			
 		super(type(self),self).__init__(response, name_or_id, server)
 		
-	def get_data(self, id, update=False):
-		logger.debug("Getting data")
-		output = None
-		creation_response = _json_constructor("hostgroup.get", self.server.auth, output="extend", filter={"groupid":id})
-		response = self.server._request_handler(creation_response)
-		# Get the Host from Server and populate attributes
-		if len(response['result']) > 0:
-			output = response['result'][0]
-			if update:
-				self.update(output)
-		return output
+	def get_data(self, id, update):
+		return super(type(self),self).__get_data__(id, "groupid", update)
 
-	def get_data_from_name(self, name, update=False):
-		logger.debug("Getting data from hostname")
-		creation_response = _json_constructor("hostgroup.get", self.server.auth, output="extend", filter={"name":name})
-		response = self.server._request_handler(creation_response)
-		if update:
-			self.update(response['result'][0])
-		return response['result']	
+	def get_data_from_name(self, name, update):
+		return super(type(self),self).__get_data_from_name__("name", name, update)
 		
 
 class Template(GenericZabbixObject):
@@ -251,25 +256,11 @@ class Template(GenericZabbixObject):
 	def __init__(self, response, name_or_id, server):			
 		super(type(self),self).__init__(response, name_or_id, server)
 		
-	def get_data(self, id, update=False):
-		logger.debug("Getting data")
-		output = None
-		creation_response = _json_constructor("template.get", self.server.auth, output="extend", filter={"hostid":id})
-		response = self.server._request_handler(creation_response)
-		# Get the Host from Server and populate attributes
-		if len(response['result']) > 0:
-			output = response['result'][0]
-			if update:
-				self.update(output)
-		return output
+	def get_data(self, id, update):
+		return super(type(self),self).__get_data__(id, "hostid", update)
 
-	def get_data_from_name(self, name, update=False):
-		logger.debug("Getting data from hostname")
-		creation_response = _json_constructor("template.get", self.server.auth, output="extend", filter={"host":name})
-		response = self.server._request_handler(creation_response)
-		if update:
-			self.update(response['result'][0])
-		return response['result']
+	def get_data_from_name(self, name, update):
+		return super(type(self),self).__get_data_from_name__("host", name, update)
 
 class Host(GenericZabbixObject):
 	"""
@@ -351,22 +342,10 @@ class Host(GenericZabbixObject):
 				self.get_data_from_hostname(hostname, update=True)
 	
 	def get_data(self, id, update=False):
-		logger.debug("Getting data")
-		output = None
-		creation_response = _json_constructor("host.get", self.server.auth, output="extend", selectGroups= "extend", filter={"hostid":id})
-		response = self.server._request_handler(creation_response)
-		# Get the Host from Server and populate attributes
-		if len(response['result']) > 0:
-			output = response['result'][0]
-			if update:
-				self.update(output)
-		return output
+		return super(type(self),self).__get_data__(id, "hostid", update = update)
 
 	def get_data_from_hostname(self, hostname, update=False):
 		logger.debug("Getting data from hostname")
-		creation_response = _json_constructor("host.get", self.server.auth, output="extend", selectGroups= "extend", filter={"host":hostname})
-		response = self.server._request_handler(creation_response)
-		if update:
-			self.update(response['result'][0])
-		return response['result']
+		return super(type(self),self).__get_data_from_name__("host", hostname, update=update)
+		
 		
