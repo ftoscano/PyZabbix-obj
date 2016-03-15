@@ -11,4 +11,6 @@ PyZabbixObj is a Python module for working with Zabbix API, using a complete OO 
 * Support for multiple Zabbix Servers
 * Support for all the main Zabbix objects using an OO implementation
 
+Module is not ready for production and a lot of stuff needs to be done. Contributors are welcome!
+
 Docs are available <a href="http://pyzabbix-obj.readthedocs.org/en/latest/">here</a>
