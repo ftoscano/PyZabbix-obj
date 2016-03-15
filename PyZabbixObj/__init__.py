@@ -6,11 +6,14 @@ from __future__ import unicode_literals
 import logging
 import requests
 import json
+import inspect
 from pprint import pprint
 
 rpc_url = "/api_jsonrpc.php"
 non_auth_methods = ["user.login","apiinfo.version"]
 classable_types = ["groups","template","groups"]
+allowed_operations = ["create","get","delete"]
+allowed_objects = ["host","trigger","template","hostgroup"]
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,8 @@ def _json_constructor(method, auth=None, **kwargs):
 	elif not method in non_auth_methods:
 		raise ZabbixRequestError("LOGIN NOK","-1","Auth code not initialized")
 	return p
-	
+		
+		
 class ZabbixServer(object):
 	"""
 	Zabbix Server Class
@@ -56,6 +60,31 @@ class ZabbixServer(object):
 	headers = {
 		"Content-Type": "application/json-rpc"
 	}	
+			
+	def __request_wrapper__(self, func_name_object, func_name_type, **kwargs):
+		logger.debug("Request wrapper: %s %s %s " % (func_name_object, func_name_type, kwargs))
+	
+		# "Host" on kwargs
+		if allowed_objects[0] in kwargs:
+			name_or_id = kwargs[allowed_objects[0]]
+			search_type = allowed_objects[0]
+		elif 'id' in kwargs:
+			name_or_id = kwargs['id']
+			search_type = func_name_object+"id"
+		else:
+			raise ZabbixRequestError("Programmatic Error","-1","You need to specify hostname or id in the request")
+		
+		json_object = _json_constructor(func_name_object+"."+func_name_type, self.auth, output="extend", selectGroups= "extend", 
+						filter={search_type:name_or_id})
+		response = self._request_handler(json_object)
+		if len(response['result']) >0:
+			# Host exists
+			return eval('%s(response[\'result\'], name_or_id, server= self)' % func_name_object.title())
+		else:
+			# Host does not exists
+			return None
+		
+	
 	def _request_handler(self, request):
 		"""
 		Internal routine for Zabbix requests
@@ -100,70 +129,39 @@ class ZabbixServer(object):
 		response = self._request_handler(json_object)
 		return response['result']
 	
-	def __init__(self, server):
+	def __init__(self, server="http://localhost/zabbix"):
 		self.api_server = server+rpc_url
-
-	def get_host(self, hostname):
-		json_object = _json_constructor("host.get", self.auth, output="extend", selectGroups= "extend", 
-						filter={"host":hostname})
-		response = self._request_handler(json_object)
-		return Host(response['result'], hostname, server= self)
-		
-	def get_trigger(self, name):
-		json_object = _json_constructor("trigger.get", self.auth, output="extend", selectGroups= "extend", 
-						filter={"triggerid":name})
-		response = self._request_handler(json_object)
-		return Trigger(response['result'], name, self)
-
-	def get_hostgroup(self, name):
-		json_object = _json_constructor("hostgroup.get", self.auth, output="extend", 
-						filter={"name":name})
-		response = self._request_handler(json_object)
-		return HostGroup(response['result'], name, server= self)
-		
-	def get_hosts(self, hostnames):
-		# Check if hostname is a single hostname (String)
-		if type(hostnames) is str:
-			hostnames = [hostnames]
-		json_object = _json_constructor("host.get", self.auth, output="extend", selectGroups= "extend", 
-						filter={"host":hostnames})
-		response = self._request_handler(json_object)
-		hosts = []
-		for results in response['result']:
-			hosts.append(Host(results, None))	# TO FIX
-		return hosts
-
-	def get_or_create_host(self, hostname, **kwargs):
-		# Get the object from the DB
-		json_object = _json_constructor("host.get", self.auth, output="extend", selectGroups= "extend", 
-						filter={"host":hostname})
-		response = self._request_handler(json_object)
-		return Host(response['result'],hostname_or_id = hostname, server= self, **kwargs)
-		
-	def get_or_create_hostgroup(self, name, **kwargs):
-		# Get the object from the DB
-		json_object = _json_constructor("hostgroup.get", self.auth, output="extend", selectGroups= "extend", 
-						filter={"host":name})
-		response = self._request_handler(json_object)
-		return HostGroup(response['result'],name_or_id = name, server= self, **kwargs)
 	
-	def get_template(self, name):
-		json_object = _json_constructor("template.get", self.auth, output="extend", 
-						filter={"host":name})
-		response = self._request_handler(json_object)
-		return Template(response['result'], name, server= self)
-
-	def get_or_create_template(self, name, **kwargs):
-		json_object = _json_constructor("template.get", self.auth, output="extend", 
-						filter={"host":name})
-		response = self._request_handler(json_object)
-		if not 'groups' in kwargs:
-			kwargs['groups'] = 1
-		return Template(response['result'], name, server= self, **kwargs)
+	def class_constructor(self, operation, object_type):
+		return type(str("%s_%s" % (operation, object_type)),(BaseOperation,),{})
+	
+	def do(self, operation, object_type,**kwargs):
+		if operation is not None and operation in allowed_operations and object_type is not None and object_type in allowed_objects:
+			method_class = self.class_constructor(operation, object_type)
+			method = method_class(self)
+			return method.do(**kwargs)
+		return None
 		
 	def __str__(self):
-		return "Server Zabbix %s" % self.url
+		return "Server Zabbix %s" % self.api_server
 
+		
+class BaseOperation(object):
+	def __init__(self, server):
+		name_array = self.__class__.__name__.split("_")
+		self.func_name_object = name_array[1]
+		self.func_name_type = name_array[0]
+		self.server = server
+		print "BaseOperation constructor: %s %s %s " % (self.func_name_object,self.func_name_type, server)
+	
+	def do(self, **kwargs):
+		return self.server.__request_wrapper__(self.func_name_object,self.func_name_type,**kwargs)
+		
+	def __str__(self):
+		return "Operator %s on %s" % (self.func_name_type, self.func_name_object)
+		
+	def __repr__(self):
+		return self.__str__()
 
 class GenericZabbixObject(object):
 	"""
@@ -260,8 +258,7 @@ class GenericZabbixObject(object):
 			out.append(v)
 		return out
 
-
-class HostGroup(GenericZabbixObject):
+class Hostgroup(GenericZabbixObject):
 	"""		
 	Host Group Class
 	
