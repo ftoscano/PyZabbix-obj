@@ -14,6 +14,11 @@ non_auth_methods = ["user.login","apiinfo.version"]
 classable_types = ["groups","template","groups"]
 allowed_operations = ["create","get","delete"]
 allowed_objects = ["host","trigger","template","hostgroup"]
+search_by_name={
+	'hostgroup':'name',
+	'template':'name',
+	'host':'host'
+}
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -65,18 +70,29 @@ class ZabbixServer(object):
 		logger.debug("Request wrapper: %s %s %s " % (func_name_object, func_name_type, kwargs))
 	
 		# "Host" on kwargs
-		if allowed_objects[0] in kwargs:
-			name_or_id = kwargs[allowed_objects[0]]
-			search_type = allowed_objects[0]
-		elif 'id' in kwargs:
+		if 'id' in kwargs:
 			name_or_id = kwargs['id']
 			search_type = func_name_object+"id"
 		else:
-			raise ZabbixRequestError("Programmatic Error","-1","You need to specify hostname or id in the request")
+			name_or_id = kwargs["name"]
+			search_type = "host"
+
+		#else:
+			#raise ZabbixRequestError("Programmatic Error","-1","You need to specify hostname or id in the request")
 		
-		json_object = _json_constructor(func_name_object+"."+func_name_type, self.auth, output="extend", selectGroups= "extend", 
-						filter={search_type:name_or_id})
+		method = func_name_object+"."+func_name_type
+		if func_name_type == "get":
+			json_object = _json_constructor(method, self.auth, output="extend", selectGroups= "extend", filter={search_type:name_or_id})
+		elif func_name_type == "create":
+			kwargs["host"] = kwargs["name"]
+			json_object = _json_constructor(method, self.auth, **kwargs)
+		elif func_name_type == "delete":
+			kwargs["host"] = kwargs["name"]
+			json_object = _json_constructor(method, self.auth, **kwargs)
+				
+		print json_object
 		response = self._request_handler(json_object)
+		print response
 		if len(response['result']) >0:
 			# Host exists
 			return eval('%s(response[\'result\'], name_or_id, server= self)' % func_name_object.title())
@@ -133,7 +149,7 @@ class ZabbixServer(object):
 		self.api_server = server+rpc_url
 	
 	def class_constructor(self, operation, object_type):
-		return type(str("%s_%s" % (operation, object_type)),(BaseOperation,),{}
+		return type(str("%s_%s" % (operation, object_type)),(BaseOperation,),{})
 	
 	def do(self, operation, object_type,**kwargs):
 		"""
