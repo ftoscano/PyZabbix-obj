@@ -1,8 +1,6 @@
 # PyZabbixObj
 ==============
 <a href="https://badge.fury.io/gh/ftoscano%2FPyZabbixObj"><img src="https://badge.fury.io/gh/ftoscano%2FPyZabbixObj.svg" alt="GitHub version" height="18"></a>
-<br />
-
 Main features
 ==============
 PyZabbixObj is a Python module for working with Zabbix API, using a complete OO implementation.
