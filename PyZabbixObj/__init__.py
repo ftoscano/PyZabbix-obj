@@ -133,9 +133,20 @@ class ZabbixServer(object):
 		self.api_server = server+rpc_url
 	
 	def class_constructor(self, operation, object_type):
-		return type(str("%s_%s" % (operation, object_type)),(BaseOperation,),{})
+		return type(str("%s_%s" % (operation, object_type)),(BaseOperation,),{}
 	
 	def do(self, operation, object_type,**kwargs):
+		"""
+		Main executing method for the server
+		
+		:param operation: Type of operation to be done. Must be in allowed_operations
+		:type request: String
+		:param object_type: Type of the object where the operation is done. Must be in allowed_objects
+		:type request: String
+		
+		:return: Instantiated class of the object or None if the object does not exist and the method does not provide creation
+		:rtype: Class of the object (Host, Hostname, Template, ecc.)
+		"""
 		if operation is not None and operation in allowed_operations and object_type is not None and object_type in allowed_objects:
 			method_class = self.class_constructor(operation, object_type)
 			method = method_class(self)
